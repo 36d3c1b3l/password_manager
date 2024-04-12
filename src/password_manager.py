@@ -1,19 +1,27 @@
 from cryptography.fernet import Fernet
 
 from cryptography.hazmat.primitives import hashes
-
+from cryptography.exceptions import InvalidSignature
+from cryptography.fernet import InvalidToken
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.backends import default_backend
 import os
 import base64
-#asd
+
 def view(fer):
-    with open('passwords.txt', 'r') as f:
-        for line in f.readlines():
-            data = line.rstrip()
-            user, tkn = data.split("|")
-            decr_token = fer.decrypt(tkn.encode()).decode()
-            print(f"User: {user}| Password: {decr_token}")
+    
+    loginfile = open('logins.txt', 'r')
+    pwdfile =  open('passwords.txt', 'rb')
+    for login in loginfile.readlines():
+        try:
+            data = login.rstrip()
+            login, leng = data.split("|") 
+            print(f"User: {login}")      
+            token = pwdfile.read(int(leng))
+            decr_token = fer.decrypt(token).decode()
+            print(f"Password: {decr_token}")
+        except InvalidToken:
+            print("Invalid master password for this login")
 
 def load_salt():
     # Implement this function to load the salt from persistent storage
@@ -37,12 +45,15 @@ def load_key(master_pwd):
     return key
 
 def add(fer):
+    
     name = input("Account Name: ")
     pwd = input("Password: ")
     token = fer.encrypt(pwd.encode())
-    token_base64 = base64.urlsafe_b64encode(token).decode()
-    with open('passwords.txt', 'a') as f:
-        f.write(f"{name}|{token_base64}\n")
+    #token_base64 = base64.urlsafe_b64encode(token).decode()
+    with open('logins.txt', 'a') as f:
+        f.write(f"{name}|{len(token)}\n")
+    with open('passwords.txt', 'ab') as f:
+        f.write(token)
 
 def main():
     master_pwd = input("What is the master password? ")
